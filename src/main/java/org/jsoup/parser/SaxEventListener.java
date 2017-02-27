@@ -39,7 +39,7 @@ public interface SaxEventListener {
     /**
      * A default implementation that ignore all tokens
      */
-    public static class NopSaxEventListener implements SaxEventListener {
+    public class NopSaxEventListener implements SaxEventListener {
 
         public void onStartTag(Token.StartTag token) {
         }

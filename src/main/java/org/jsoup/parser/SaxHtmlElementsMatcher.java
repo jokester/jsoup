@@ -2,14 +2,18 @@ package org.jsoup.parser;
 
 import org.jsoup.helper.Validate;
 
+import java.util.ArrayList;
+import java.util.Locale;
+import java.util.regex.Pattern;
+
 /**
  * Match and build HTML Element(s) from a stream of Sax events
  * <p>
- * Elements are matched with a very limited subset of CSS selector grammar, see {@link ElementPath}
+ * Elements are matched with a very limited subset of CSS selector grammar, see {@link ElementsPath}
  * <p>
  * You can use normal selectors on Element.select() afterwards.
  */
-public class SaxHtmlMatcher extends SaxEventListener.NopSaxEventListener {
+public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener {
 
     /**
      * NodePath: path of node that uses
@@ -20,10 +24,30 @@ public class SaxHtmlMatcher extends SaxEventListener.NopSaxEventListener {
      * 2. a PathSegment is of form 'tag.class#id' where at least one
      * of tag, classes, id is supplied
      */
-    static class ElementPath extends SaxEventListener.NopSaxEventListener {
-        public ElementPath(String selector) {
+    static class ElementsPath extends SaxEventListener.NopSaxEventListener {
+        public ElementsPath(String selector) {
             // TODO parse selector into an array of PathSegment
             // TODO keep a stack of tags by far
+            TokenQueue tq = new TokenQueue(selector);
+
+            while (!tq.isEmpty()) {
+                tq.consumeWhitespace();
+                if (tq.consume() != '>') {
+                    Validate.fail(String.format(Locale.ENGLISH, "Expected at '%s'", tq.remainder()));
+                }
+
+                ArrayList<String> tagQualifierStrings = null;
+                ArrayList<String> idQualifierStrings = null;
+                ArrayList<String> classQualifierStrings = null;
+
+                while (true) {
+
+                }
+            }
+        }
+
+        private void parse() {
+
         }
 
         /**
@@ -125,6 +149,12 @@ public class SaxHtmlMatcher extends SaxEventListener.NopSaxEventListener {
                 // FIXME
                 return false;
             }
+        }
+    }
+
+    public static class SaxHtmlMatcherException extends IllegalStateException {
+        public SaxHtmlMatcherException(String msg, Object... params) {
+            super(String.format(msg, params));
         }
     }
 }

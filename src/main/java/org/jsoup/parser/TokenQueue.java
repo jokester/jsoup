@@ -30,6 +30,13 @@ public class TokenQueue {
     public boolean isEmpty() {
         return remainingLength() == 0;
     }
+
+    /**
+     * @return current position
+     */
+    public int getPos() {
+        return pos;
+    }
     
     private int remainingLength() {
         return queue.length() - pos;

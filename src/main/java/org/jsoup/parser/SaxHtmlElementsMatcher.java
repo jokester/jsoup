@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * Match and build HTML Element(s) from a stream of Sax events
  * <p>
- * Elements are matched with a very limited subset of CSS selector grammar, see {@link ElementsPath}
+ * Elements are matched with a very limited subset of CSS selector grammar, see {@link ElementPath}
  * <p>
  * You can use normal selectors on Element.select() afterwards.
  */
@@ -24,7 +24,11 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
      * 2. a PathSegment is of form 'tag.class#id' where at least one
      * of tag, classes, id is supplied
      */
-    static class ElementsPath extends SaxEventListener.NopSaxEventListener {
+    static class ElementPath extends SaxEventListener.NopSaxEventListener {
+
+        public static ElementPath parse(String selector) {
+            return new ElementPath(selector);
+        }
 
         private final ElementQualifier[] qualifiers;
         private final ArrayList<Element> matched = new ArrayList<Element>(4);
@@ -33,16 +37,17 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
         private int currentDepth = 0;
         private int matchedDepth = 0;
 
-        public ElementsPath(String selector) {
+        public ElementPath(String selector) {
             TokenQueue tq = new TokenQueue(selector);
 
             ArrayList<ElementQualifier> pathSelector = new ArrayList<ElementQualifier>();
 
             while (!tq.isEmpty()) {
                 tq.consumeWhitespace();
-                if (tq.consume() != '>') {
-                    throw new SaxHtmlMatcherException("Expected > at %s", tq.remainder());
+                if (tq.isEmpty() || !tq.matchesAny('>')) {
+                    throw new SaxHtmlMatcherException("Expected '>' before %s", tq.remainder());
                 }
+                tq.consume();
                 tq.consumeWhitespace();
 
                 ArrayList<ElementQualifier> thisLevel = new ArrayList<ElementQualifier>();

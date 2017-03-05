@@ -66,10 +66,14 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
                         Validate.notEmpty(tag);
                         thisLevel.add(new ElementQualifier.TagIs(tag));
                     } else {
-                        if (thisLevel.size() == 0) {
+                        int numQualifiers = thisLevel.size();
+                        if (numQualifiers == 0) {
                             throw new SaxHtmlMatcherException("expected selector before %s", tq.remainder());
+                        } else if (numQualifiers == 1) {
+                            pathSelector.add(thisLevel.get(0));
+                        } else {
+                            pathSelector.add(new ElementQualifier.And(thisLevel));
                         }
-                        pathSelector.add(new ElementQualifier.And(thisLevel));
                         tq.consumeWhitespace();
                         break;
                     }

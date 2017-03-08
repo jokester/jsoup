@@ -56,55 +56,56 @@ public class HtmlTreeBuilder extends TreeBuilder {
         return super.parse(input, baseUri, errors, settings);
     }
 
-    List<Node> parseFragment(String inputFragment, Element context, String baseUri, ParseErrorList errors, ParseSettings settings) {
-        // context may be null
-        state = HtmlTreeBuilderState.Initial;
-        initialiseParse(inputFragment, baseUri, errors, settings);
-        contextElement = context;
-        fragmentParsing = true;
-        Element root = null;
+    Element createRootForContext(Element context) {
 
-        if (context != null) {
-            if (context.ownerDocument() != null) // quirks setup:
-                doc.quirksMode(context.ownerDocument().quirksMode());
+        if (context.ownerDocument() != null) // quirks setup:
+            doc.quirksMode(context.ownerDocument().quirksMode());
 
-            // initialise the tokeniser state:
-            String contextTag = context.tagName();
-            if (StringUtil.in(contextTag, "title", "textarea"))
-                tokeniser.transition(TokeniserState.Rcdata);
-            else if (StringUtil.in(contextTag, "iframe", "noembed", "noframes", "style", "xmp"))
-                tokeniser.transition(TokeniserState.Rawtext);
-            else if (contextTag.equals("script"))
-                tokeniser.transition(TokeniserState.ScriptData);
-            else if (contextTag.equals(("noscript")))
-                tokeniser.transition(TokeniserState.Data); // if scripting enabled, rawtext
-            else if (contextTag.equals("plaintext"))
-                tokeniser.transition(TokeniserState.Data);
-            else
-                tokeniser.transition(TokeniserState.Data); // default
+        // initialise the tokeniser state:
+        String contextTag = context.tagName();
+        if (StringUtil.in(contextTag, "title", "textarea"))
+            tokeniser.transition(TokeniserState.Rcdata);
+        else if (StringUtil.in(contextTag, "iframe", "noembed", "noframes", "style", "xmp"))
+            tokeniser.transition(TokeniserState.Rawtext);
+        else if (contextTag.equals("script"))
+            tokeniser.transition(TokeniserState.ScriptData);
+        else if (contextTag.equals(("noscript")))
+            tokeniser.transition(TokeniserState.Data); // if scripting enabled, rawtext
+        else if (contextTag.equals("plaintext"))
+            tokeniser.transition(TokeniserState.Data);
+        else
+            tokeniser.transition(TokeniserState.Data); // default
 
-            root = new Element(Tag.valueOf("html", settings), baseUri);
-            doc.appendChild(root);
-            stack.add(root);
-            resetInsertionMode();
+        Element root = new Element(Tag.valueOf("html", settings), baseUri);
+        doc.appendChild(root);
+        stack.add(root);
+        resetInsertionMode();
 
-            // setup form element to nearest form on context (up ancestor chain). ensures form controls are associated
-            // with form correctly
-            Elements contextChain = context.parents();
-            contextChain.add(0, context);
-            for (Element parent: contextChain) {
-                if (parent instanceof FormElement) {
-                    formElement = (FormElement) parent;
-                    break;
-                }
+        // setup form element to nearest form on context (up ancestor chain). ensures form controls are associated
+        // with form correctly
+        Elements contextChain = context.parents();
+        contextChain.add(0, context);
+        for (Element parent: contextChain) {
+            if (parent instanceof FormElement) {
+                formElement = (FormElement) parent;
+                break;
             }
         }
 
+        return root;
+    }
+
+
+    List<Node> parseFragment(String inputFragment, Element context, String baseUri, ParseErrorList errors, ParseSettings settings) {
+        // context may be null
+        state = HtmlTreeBuilderState.Initial;
+        contextElement = context;
+        fragmentParsing = true;
+        initialiseParse(inputFragment, baseUri, errors, settings);
+        Element root = context == null ? doc : createRootForContext(context);
+
         runParser();
-        if (context != null && root != null)
-            return root.childNodes();
-        else
-            return doc.childNodes();
+        return root.childNodes();
     }
 
     @Override

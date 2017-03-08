@@ -108,6 +108,23 @@ public class HtmlTreeBuilder extends TreeBuilder {
         return root.childNodes();
     }
 
+
+    List<Node> parseFragment(List<Token> tokens, Element context, String baseUri, ParseErrorList errors, ParseSettings settings) {
+        // context may be null
+        state = HtmlTreeBuilderState.Initial;
+        contextElement = context;
+        fragmentParsing = true;
+        initialiseParse("", baseUri, errors, settings);
+        Element root = context == null ? doc : createRootForContext(context);
+
+        for(Token token: tokens) {
+            process(token);
+            if (token.type == Token.TokenType.EOF)
+                break;
+        }
+        return root.childNodes();
+    }
+
     @Override
     protected boolean process(Token token) {
         currentToken = token;

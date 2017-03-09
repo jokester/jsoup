@@ -703,6 +703,15 @@ public class HtmlParserTest {
         assertEquals("36: Invalid character reference: invalid named referenece 'arrgh'", errors.get(2).toString());
     }
 
+    @Test public void wtf() {
+        String html = "<p>";
+        Parser p = Parser.htmlParser().setTrackErrors(16);
+        String url = "http://127.0.0.1/a/";
+        Document d = p.parseBodyFragment(html, url);
+
+        assertEquals(10, d.childNodeSize());
+    }
+
     @Test public void noErrorsByDefault() {
         String html = "<p>One</p href='no'>&arrgh;<font /><br /><foo";
         Parser parser = Parser.htmlParser();

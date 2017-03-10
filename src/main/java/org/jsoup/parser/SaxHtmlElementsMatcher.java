@@ -12,11 +12,12 @@ import java.util.List;
  * Elements are matched with a very limited subset of CSS selector grammar, see {@link ElementPath}
  * <p>
  * You can use normal selectors on Element.select() afterwards.
- * This is be more effective, but less W3C-compliant than a complete parser like {@link HTMLTreeBuilder}
- * Please only use it on documents that are known to be tidy.
+ * This is be more effective, but less W3C-compliant than a complete parser like {@link HtmlTreeBuilder}
+ * Please only use it on documents that are known to be clean and valid.
  * TODO `SaxHtmlMatcher` might be a better name?
  */
 public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener {
+
 
     /**
      * NodePath: path of node that uses
@@ -34,7 +35,9 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
         }
 
         private final ElementQualifier[] qualifiers;
-        private final ArrayList<Element> matched = new ArrayList<Element>(4);
+        private final ArrayList<Token.StartTag> tagStack = new ArrayList<Token.StartTag>(4);
+
+        private boolean matching = false;
 
         // depth in a complete DOM
         private int currentDepth = 0;
@@ -90,10 +93,6 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
             this.qualifiers = pathSelector.toArray(ElementQualifier.EmptyQualifierArray);
         }
 
-        Element[] getMatched() {
-            return matched.toArray(new Element[0]);
-        }
-
         /**
          * User of this class may check isMatching() after each onStartTag()
          *
@@ -103,38 +102,25 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
          * of isMatching() and start/finish build of Element.
          */
         public boolean isMatching() {
-            return false;
+            return matching;
         }
 
         @Override
         public void onStartTag(Token.StartTag token) {
-            super.onStartTag(token);
+            tagStack.add(token);
+            if (tagStack.size() == matchedDepth) {
+                if (matchedDepth < )
+            }
+
         }
 
         @Override
         public void onEndTag(Token.EndTag token) {
-            super.onEndTag(token);
+            for(int i=tagStack.size(); i >= 0; i--) {
+                if ()
+            }
         }
 
-        @Override
-        public void onDocType(Token.Doctype token) {
-            super.onDocType(token);
-        }
-
-        @Override
-        public void onComment(Token.Comment token) {
-            super.onComment(token);
-        }
-
-        @Override
-        public void onCharacter(Token.Character token) {
-            super.onCharacter(token);
-        }
-
-        @Override
-        public void onEOF(Token.EOF token) {
-            super.onEOF(token);
-        }
 
     }
 

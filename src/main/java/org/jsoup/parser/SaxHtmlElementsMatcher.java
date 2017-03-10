@@ -12,6 +12,9 @@ import java.util.List;
  * Elements are matched with a very limited subset of CSS selector grammar, see {@link ElementPath}
  * <p>
  * You can use normal selectors on Element.select() afterwards.
+ * This is be more effective, but less W3C-compliant than a complete parser like {@link HTMLTreeBuilder}
+ * Please only use it on documents that are known to be tidy.
+ * TODO `SaxHtmlMatcher` might be a better name?
  */
 public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener {
 

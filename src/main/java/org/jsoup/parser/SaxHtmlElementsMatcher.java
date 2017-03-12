@@ -18,7 +18,6 @@ import java.util.List;
  */
 public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener {
 
-
     /**
      * NodePath: path of node that uses
      * <p>
@@ -107,18 +106,28 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
 
         @Override
         public void onStartTag(Token.StartTag token) {
+            int tagDepth = tagStack.size();
             tagStack.add(token);
-            if (tagStack.size() == matchedDepth) {
-                if (matchedDepth < )
+
+            if (tagDepth < qualifiers.length) {
+                ElementQualifier qualifier = qualifiers[tagDepth];
+                if (qualifier.match(token)) {
+                    matchedDepth = tagDepth;
+                }
             }
+
 
         }
 
         @Override
         public void onEndTag(Token.EndTag token) {
-            for(int i=tagStack.size(); i >= 0; i--) {
-                if ()
+            tagStack.remove(tagStack.size() - 1);
+            int tagDepth = tagStack.size() - 1;
+
+            if (tagDepth < matchedDepth) {
+                matchedDepth = tagDepth;
             }
+
         }
 
 

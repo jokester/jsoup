@@ -18,6 +18,52 @@ import java.util.List;
  */
 public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener {
 
+    private static final String dummyURL = "";
+
+    /**
+     * A subclass can override this to retrieve element immediately
+     * @param e
+     */
+    public void onElementMatched(Element e) {}
+
+
+    static class PartialTreeBuilder implements SaxEventListener {
+        private final ArrayList<Element> nodeStack = new ArrayList<Element>();
+
+        public void onStartTag(Token.StartTag token) {
+
+            Element newElem = new Element(Tag.valueOf(token.tagName, ParseSettings.htmlDefault),
+                    dummyURL, token.getAttributes());
+
+            if (nodeStack.size() != 0) {
+                 Element parent = nodeStack.get(nodeStack.size() - 1);
+                parent.i
+            }
+
+            nodeStack.add(newElem);
+        }
+
+        public void onEndTag(Token.EndTag token) {
+
+        }
+
+        public void onDocType(Token.Doctype token) {
+
+        }
+
+        public void onComment(Token.Comment token) {
+
+        }
+
+        public void onCharacter(Token.Character token) {
+
+        }
+
+        public void onEOF(Token.EOF token) {
+
+        }
+    }
+
     /**
      * NodePath: path of node that uses
      * <p>
@@ -34,12 +80,10 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
         }
 
         private final ElementQualifier[] qualifiers;
-        private final ArrayList<Token.StartTag> tagStack = new ArrayList<Token.StartTag>(4);
 
-        private boolean matching = false;
+        private final ArrayList<Token.StartTag> tagStack = new ArrayList<Token.StartTag>(16);
 
-        // depth in a complete DOM
-        private int currentDepth = 0;
+        // index of right-most matched tag
         private int matchedDepth = 0;
 
         public ElementPath(String selector) {
@@ -101,7 +145,7 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
          * of isMatching() and start/finish build of Element.
          */
         public boolean isMatching() {
-            return matching;
+            return matchedDepth >= qualifiers.length - 1;
         }
 
         @Override
@@ -115,8 +159,6 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
                     matchedDepth = tagDepth;
                 }
             }
-
-
         }
 
         @Override

@@ -28,23 +28,37 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
 
 
     static class PartialTreeBuilder implements SaxEventListener {
-        private final ArrayList<Element> nodeStack = new ArrayList<Element>();
+
+        private final ElementPath path;
+
+        private final ArrayList<Element> nodeStack = new ArrayList<Element>(16);
+        private final ArrayList<Element> found = new ArrayList<Element>();
+        PartialTreeBuilder(String selector) {
+            path = ElementPath.create(selector);
+        }
 
         public void onStartTag(Token.StartTag token) {
+            boolean matchingBefore = path.isMatching();
+            path.onStartTag(token);
+            boolean matchingAfter = path.isMatching();
 
             Element newElem = new Element(Tag.valueOf(token.tagName, ParseSettings.htmlDefault),
                     dummyURL, token.getAttributes());
 
             if (nodeStack.size() != 0) {
                  Element parent = nodeStack.get(nodeStack.size() - 1);
-                parent.i
+                 // TODO learn
             }
 
             nodeStack.add(newElem);
         }
 
         public void onEndTag(Token.EndTag token) {
-
+            boolean matchingBefore = path.isMatching();
+            boolean matchingAfter = path.isMatching();
+            if (matchingBefore && !matchingAfter) {
+                // pop nodeStack
+            }
         }
 
         public void onDocType(Token.Doctype token) {
@@ -75,7 +89,7 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
      */
     static class ElementPath extends SaxEventListener.NopSaxEventListener {
 
-        public static ElementPath parse(String selector) {
+        public static ElementPath create(String selector) {
             return new ElementPath(selector);
         }
 

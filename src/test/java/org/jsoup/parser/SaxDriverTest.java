@@ -53,21 +53,21 @@ public class SaxDriverTest {
 
     @Test(expected = SaxHtmlElementsMatcher.SaxHtmlMatcherException.class)
     public void rejectEmptySelector1() {
-        SaxHtmlElementsMatcher.ElementPath path = SaxHtmlElementsMatcher.ElementPath.parse(" \t\r\n");
+        SaxHtmlElementsMatcher.ElementPath path = SaxHtmlElementsMatcher.ElementPath.create(" \t\r\n");
     }
 
     @Test
     public void acceptTagSelector() {
-        SaxHtmlElementsMatcher.ElementPath path = SaxHtmlElementsMatcher.ElementPath.parse(" > html \t\r>   \nbody > div > br\t\r");
+        SaxHtmlElementsMatcher.ElementPath path = SaxHtmlElementsMatcher.ElementPath.create(" > html \t\r>   \nbody > div > br\t\r");
     }
 
     @Test(expected = SaxHtmlElementsMatcher.SaxHtmlMatcherException.class)
     public void rejectTagSelector() {
-        SaxHtmlElementsMatcher.ElementPath path = SaxHtmlElementsMatcher.ElementPath.parse(" html > body > div > br\t\r");
+        SaxHtmlElementsMatcher.ElementPath path = SaxHtmlElementsMatcher.ElementPath.create(" html > body > div > br\t\r");
     }
 
     @Test
     public void acceptComplicatedSelector() {
-        SaxHtmlElementsMatcher.ElementPath path = SaxHtmlElementsMatcher.ElementPath.parse(" > html \t\r   >   \nbody.ho > div#main-content > br\t\r");
+        SaxHtmlElementsMatcher.ElementPath path = SaxHtmlElementsMatcher.ElementPath.create(" > html \t\r   >   \nbody.ho > div#main-content > br\t\r");
     }
 }

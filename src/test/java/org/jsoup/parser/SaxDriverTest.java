@@ -130,26 +130,28 @@ public class SaxDriverTest {
     public void matchesPartialTree() {
 
         String html1 = new StringBuilder()
-                .append("<a id=\"idA\">          ")
-                .append("  <b>                   ")
-                .append("    <c id=\"idC1\">C1   ")
-                .append("      <d>D1-1</d>       ")
-                .append("    </c>                ")
-                .append("  </b>                  ")
-                .append("  <b>                   ")
-                .append("    <c>C2               ")
-                .append("      <d>D2-1</d>       ")
-                .append("    </c>                ")
-                .append("    <c>C3               ")
-                .append("      <d>D3-1</d>       ")
-                .append("      <d>D3-2</d>       ")
-                .append("    </c>                ")
-                .append("    <c>C4               ")
-                .append("      <d>D4-1           ")
+                .append("<div id=\"idA\">        ")
+                .append("  <div class=\"b1 b2\"> ")
+                .append("    <p id=\"idC1\">C1   ")
+                .append("      <span>D1-1</span> ")
+                .append("      <hr>              ")
+                .append("    </p>                ")
+                .append("  </div>                ")
+                .append("  <div class=\"b1\">    ")
+                .append("    <p>C2               ")
+                .append("      <span>D2-1</span> ")
+                .append("    </p>                ")
+                .append("    <p class=\"c3\">C3  ")
+                .append("      <span>D3-1</span> ")
+                .append("      <img>             ")
+                .append("      <br>              ")
+                .append("    </p>                ")
+                .append("    <p>C4               ")
+                .append("      <hr>D4-1          ")
                 .toString();
 
         ParseErrorList errors = ParseErrorList.tracking(100);
-        SaxHtmlElementsMatcher.PartialTreeMatcher matcher = new SaxHtmlElementsMatcher.PartialTreeMatcher("> a > b > c", errors, "");
+        SaxHtmlElementsMatcher.PartialTreeMatcher matcher = new SaxHtmlElementsMatcher.PartialTreeMatcher("> div > div.b1 > p", errors, "");
 
         SaxDriver driver = new SaxDriver(html1);
         driver.addListener(matcher);
@@ -159,10 +161,10 @@ public class SaxDriverTest {
         assertEquals(4, partialTrees.size());
 
         Element c1 = partialTrees.get(0);
-        assertEquals(1, c1.getElementsByTag("d").size());
+        assertEquals(1, c1.getElementsByTag("p").size());
 
         Element c3 = partialTrees.get(2);
-        assertEquals(2, c3.getElementsByTag("d").size());
+        assertEquals(1, c3.getElementsByTag("img").size());
 
         assertEquals(html1, partialTrees.toString());
     }

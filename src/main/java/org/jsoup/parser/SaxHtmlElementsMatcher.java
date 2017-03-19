@@ -6,6 +6,7 @@ import org.jsoup.select.Elements;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Match and build HTML Element(s) from a stream of Sax events
@@ -404,17 +405,27 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
          * have class (case sensitive)
          */
         static class HaveClass extends ElementQualifier {
-            private final String classname;
+            private static final Pattern ClassNamePattern = Pattern.compile("\\s+");
+            private final String className;
 
             HaveClass(String classname) {
                 Validate.notNull(classname);
-                this.classname = classname;
+                this.className = classname;
             }
 
             @Override
             boolean match(Token.StartTag startTag) {
-                String classnames = startTag.getAttributes().getIgnoreCase("class");
-                // FIXME
+                String tagClass = startTag.getAttributes().getIgnoreCase("class");
+                if (className.length() == tagClass.length())
+                    return className.equalsIgnoreCase(tagClass);
+
+                // split by space as in Element#classNames()
+                String[] classNames = ClassNamePattern.split(tagClass);
+                for (String c : classNames) {
+                    if (className.equalsIgnoreCase(c)) {
+                        return true;
+                    }
+                }
                 return false;
             }
         }

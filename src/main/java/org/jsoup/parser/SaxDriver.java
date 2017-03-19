@@ -1,7 +1,5 @@
 package org.jsoup.parser;
 
-import org.jsoup.helper.StringUtil;
-
 import java.util.ArrayList;
 
 /**
@@ -15,8 +13,6 @@ import java.util.ArrayList;
  * @author Wang Guan
  */
 public final class SaxDriver {
-
-    private final ArrayList<SaxEventListener> listeners = new ArrayList<SaxEventListener>();
 
     /**
      * Void elements that *may* have self-closing tag
@@ -38,7 +34,7 @@ public final class SaxDriver {
             "track",
             "wbr",
     };
-
+    private final ArrayList<SaxEventListener> listeners = new ArrayList<SaxEventListener>();
     private CharacterReader characterReader;
 
     // TODO can we read from stream instead of String? (original jsoup can't)
@@ -61,18 +57,18 @@ public final class SaxDriver {
                 feedListeners(t.asStartTag());
                 // "unfolds" when t is a self-closing tag
                 // or feed a fake closing tag if t is a void element
-                if (t.asStartTag().isSelfClosing() || StringUtil.inSorted(t.asStartTag().normalName(), VoidElements))
+                if (t.asStartTag().isSelfClosing() || Tag.valueOf(t.asStartTag().normalName()).isEmpty())
                     feedListeners(new Token.EndTag().name(t.asStartTag().name()).asEndTag());
             } else if (t instanceof Token.EndTag) {
-                if (!StringUtil.inSorted(((Token.EndTag) t).normalName(), VoidElements))
-                  feedListeners((Token.EndTag) t);
+                if (!Tag.valueOf(t.asEndTag().normalName()).isEmpty())
+                    feedListeners((Token.EndTag) t);
             } else if (t instanceof Token.Doctype) {
                 feedListeners((Token.Doctype) t);
             } else if (t instanceof Token.Comment) {
                 feedListeners((Token.Comment) t);
             } else if (t instanceof Token.EOF) {
                 feedListeners((Token.EOF) t);
-            } else  {
+            } else {
                 throw new NoSuchMethodError("Unexpected token class:" + t.getClass().getCanonicalName());
             }
 

@@ -130,22 +130,22 @@ public class SaxDriverTest {
     public void matchesPartialTree() {
 
         String html1 = new StringBuilder()
-                .append("<a>                ")
-                .append("  <b>              ")
-                .append("    <c>C1          ")
-                .append("      <d>D1-1</d>  ")
-                .append("    </c>           ")
-                .append("  </b>             ")
-                .append("  <b>              ")
-                .append("    <c>C2          ")
-                .append("      <d>D2-1</d>  ")
-                .append("    </c>           ")
-                .append("    <c>C3          ")
-                .append("      <d>D3-1</d>  ")
-                .append("      <d>D3-2</d>  ")
-                .append("    </c>           ")
-                .append("    <c>C4          ")
-                .append("      <d>D4-1      ")
+                .append("<a id=\"idA\">          ")
+                .append("  <b>                   ")
+                .append("    <c id=\"idC1\">C1   ")
+                .append("      <d>D1-1</d>       ")
+                .append("    </c>                ")
+                .append("  </b>                  ")
+                .append("  <b>                   ")
+                .append("    <c>C2               ")
+                .append("      <d>D2-1</d>       ")
+                .append("    </c>                ")
+                .append("    <c>C3               ")
+                .append("      <d>D3-1</d>       ")
+                .append("      <d>D3-2</d>       ")
+                .append("    </c>                ")
+                .append("    <c>C4               ")
+                .append("      <d>D4-1           ")
                 .toString();
 
         ParseErrorList errors = ParseErrorList.tracking(100);
@@ -164,6 +164,6 @@ public class SaxDriverTest {
         Element c3 = partialTrees.get(2);
         assertEquals(2, c3.getElementsByTag("d").size());
 
-        assertEquals("", partialTrees.toString());
+        assertEquals(html1, partialTrees.toString());
     }
 }

@@ -1,7 +1,7 @@
 package org.jsoup.parser;
 
 import org.jsoup.helper.Validate;
-import org.jsoup.nodes.Element;
+import org.jsoup.nodes.*;
 import org.jsoup.select.Elements;
 
 import java.util.ArrayList;
@@ -134,11 +134,45 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
 
         @Override
         public void onEOF(Token.EOF token) {
-            if (matchedTrees.size() > 0) {
-                Element incomplete = matchedTrees.get(0);
+            if (currentTree.size() > 0) {
+                Element incomplete = currentTree.get(0);
                 onTreeBuilt(incomplete);
                 matchedTrees.add(incomplete);
                 currentTree.clear();
+            }
+        }
+
+        @Override
+        public void onDocType(Token.Doctype d) {
+            Element current = currentNode();
+            if (current != null) {
+                // FIXME should we support a ParseSettings object?
+                Node e = new DocumentType(
+                        d.getName(), d.getPubSysKey(), d.getPublicIdentifier(), d.getSystemIdentifier(), baseUri);
+                current.appendChild(e);
+            }
+        }
+
+        @Override
+        public void onComment(Token.Comment token) {
+            Element current = currentNode();
+            if (current != null) {
+                Comment comment = new Comment(token.getData(), baseUri);
+                current.appendChild(comment);
+            }
+        }
+
+        @Override
+        public void onCharacter(Token.Character token) {
+            Element current = currentNode();
+            if (current != null) {
+                String tagName = current.tagName();
+                Node node;
+                if (tagName.equals("script") || tagName.equals("style"))
+                    node = new DataNode(token.getData(), baseUri);
+                else
+                    node = new TextNode(token.getData(), baseUri);
+                current.appendChild(node);
             }
         }
 

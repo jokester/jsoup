@@ -106,8 +106,7 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
      */
     static class ElementPath extends SaxEventListener.NopSaxEventListener {
         private final ElementQualifier[] qualifiers;
-        // FIXME it should be possible to prevent clone of StartTag: use List<String> instaed
-        private final ArrayList<Token.StartTag> tagStack = new ArrayList<Token.StartTag>(16);
+        private final ArrayList<String> tagStack = new ArrayList<String>(16);
         private final ParseErrorList errors;
         // num of matched tags. starting from left-most tag in tagStack
         int matchedDepth = 0;
@@ -138,8 +137,7 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
         @Override
         public void onStartTag(Token.StartTag token) {
             final int tagDepth = tagStack.size();
-            token = dup(token);
-            tagStack.add(token);
+            tagStack.add(token.name());
 
             // increase matchedDepth when the new tag is qualified
             if (matchedDepth == tagDepth && tagDepth < qualifiers.length) {
@@ -158,9 +156,9 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
                 return;
             }
 
-            final Token.StartTag rightMost = tagStack.get(tagDepth - 1);
-            if (!rightMost.name().equals(token.name())) {
-                unexpectedTag(token, "last StartTag was " + rightMost.toString());
+            final String rightMost = tagStack.get(tagDepth - 1);
+            if (!rightMost.equals(token.name())) {
+                unexpectedTag(token, "last StartTag was " + rightMost);
                 return;
             }
 
@@ -176,7 +174,9 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
             }
         }
 
+        @Deprecated
         Token.StartTag dup(Token.StartTag t) {
+            // TODO remove this if not required
             return new Token.StartTag().nameAttr(t.name(), t.getAttributes());
         }
 

@@ -15,50 +15,32 @@ import java.util.List;
  * This is be more effective, but less W3C-compliant than a complete parser like {@link HtmlTreeBuilder}
  * Please only use it on documents that are known to be clean and valid.
  * TODO `SaxHtmlMatcher` might be a better name?
+ * <p>
+ * ElementMatcher: matches a start tag by (tag name / id / class)
+ * ElementPathMatcher: matches an array of start tags
+ * TreeMatcher
  */
 public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener {
 
     private static final String dummyURL = "";
 
-    /**
-     * A subclass can override this to retrieve element immediately
-     * @param e
-     */
-    public void onElementMatched(Element e) {}
-
-
     static class PartialTreeBuilder implements SaxEventListener {
 
-        private final ElementPath path;
-
-        private final ArrayList<Element> nodeStack = new ArrayList<Element>(16);
-        private final ArrayList<Element> found = new ArrayList<Element>();
-        PartialTreeBuilder(String selector) {
-            path = ElementPath.create(selector);
+        /**
+         * A subclass can override this to retrieve element immediately
+         *
+         * @param e matched element
+         */
+        public void onElementMatched(Element e) {
         }
 
+
         public void onStartTag(Token.StartTag token) {
-            boolean matchingBefore = path.isMatching();
-            path.onStartTag(token);
-            boolean matchingAfter = path.isMatching();
 
-            Element newElem = new Element(Tag.valueOf(token.tagName, ParseSettings.htmlDefault),
-                    dummyURL, token.getAttributes());
-
-            if (nodeStack.size() != 0) {
-                 Element parent = nodeStack.get(nodeStack.size() - 1);
-                 // TODO learn
-            }
-
-            nodeStack.add(newElem);
         }
 
         public void onEndTag(Token.EndTag token) {
-            boolean matchingBefore = path.isMatching();
-            boolean matchingAfter = path.isMatching();
-            if (matchingBefore && !matchingAfter) {
-                // pop nodeStack
-            }
+
         }
 
         public void onDocType(Token.Doctype token) {
@@ -78,6 +60,41 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
         }
     }
 
+    static class PartialTreeMatcher extends SaxEventListener.NopSaxEventListener {
+
+        private final ElementPath path;
+
+        private final ArrayList<Element> nodeStack = new ArrayList<Element>(16);
+
+        PartialTreeMatcher(String selector) {
+            path = ElementPath.create(selector);
+        }
+
+        public void onStartTag(Token.StartTag token) {
+            boolean matchingBefore = path.isMatching();
+            path.onStartTag(token);
+            boolean matchingAfter = path.isMatching();
+
+            Element newElem = new Element(Tag.valueOf(token.tagName, ParseSettings.htmlDefault),
+                    dummyURL, token.getAttributes());
+
+            if (nodeStack.size() != 0) {
+                Element parent = nodeStack.get(nodeStack.size() - 1);
+                // TODO learn
+            }
+
+            nodeStack.add(newElem);
+        }
+
+        public void onEndTag(Token.EndTag token) {
+            boolean matchingBefore = path.isMatching();
+            boolean matchingAfter = path.isMatching();
+            if (matchingBefore && !matchingAfter) {
+                // pop nodeStack
+            }
+        }
+    }
+
     /**
      * NodePath: path of node that uses
      * <p>
@@ -88,23 +105,85 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
      * of tag, classes, id is supplied
      */
     static class ElementPath extends SaxEventListener.NopSaxEventListener {
+        private final ElementQualifier[] qualifiers;
+        // FIXME it should be possible to prevent clone of StartTag: use List<String> instaed
+        private final ArrayList<Token.StartTag> tagStack = new ArrayList<Token.StartTag>(16);
+        private final ParseErrorList errors;
+        // num of matched tags. starting from left-most tag in tagStack
+        int matchedDepth = 0;
 
-        public static ElementPath create(String selector) {
-            return new ElementPath(selector);
+        public ElementPath(String selector, ParseErrorList errors) {
+            this.qualifiers = parseSelector(selector);
+            this.errors = errors;
         }
 
-        private final ElementQualifier[] qualifiers;
+        public static ElementPath create(String selector, ParseErrorList errors) {
+            return new ElementPath(selector, errors);
+        }
 
-        private final ArrayList<Token.StartTag> tagStack = new ArrayList<Token.StartTag>(16);
+        public static ElementPath create(String selector) {
+            return new ElementPath(selector, ParseErrorList.noTracking());
+        }
 
-        // index of right-most matched tag
-        private int matchedDepth = 0;
+        /**
+         * @return whether the last StartTag / EndTag belongs to a Partial DOM Tree
+         * <p>
+         * When used to build Elements, user should detect transition
+         * of isMatching() and start/finish build of Element.
+         */
+        public boolean isMatching() {
+            return matchedDepth >= qualifiers.length;
+        }
 
-        public ElementPath(String selector) {
-            TokenQueue tq = new TokenQueue(selector);
+        @Override
+        public void onStartTag(Token.StartTag token) {
+            final int tagDepth = tagStack.size();
+            token = dup(token);
+            tagStack.add(token);
 
+            // increase matchedDepth when the new tag is qualified
+            if (matchedDepth == tagDepth && tagDepth < qualifiers.length) {
+                ElementQualifier qualifier = qualifiers[tagDepth];
+                if (qualifier.match(token)) {
+                    matchedDepth = tagDepth + 1;
+                }
+            }
+        }
+
+        @Override
+        public void onEndTag(Token.EndTag token) {
+            final int tagDepth = tagStack.size();
+            if (tagDepth == 0) {
+                unexpectedTag(token, "tagStack is already empty");
+                return;
+            }
+
+            final Token.StartTag rightMost = tagStack.get(tagDepth - 1);
+            if (!rightMost.name().equals(token.name())) {
+                unexpectedTag(token, "last StartTag was " + rightMost.toString());
+                return;
+            }
+
+            // pop from tagStack and decrease matchedDepth
+            tagStack.remove(tagDepth - 1);
+            matchedDepth = Math.min(matchedDepth, tagDepth - 1);
+        }
+
+        // this is the only possible error
+        void unexpectedTag(Token.Tag tag, String message) {
+            if (errors.canAddError()) {
+                errors.add(new ParseError(-1, "Unexpected token '%s': %s", tag.toString(), message));
+            }
+        }
+
+        Token.StartTag dup(Token.StartTag t) {
+            return new Token.StartTag().nameAttr(t.name(), t.getAttributes());
+        }
+
+        ElementQualifier[] parseSelector(String selector) {
             ArrayList<ElementQualifier> pathSelector = new ArrayList<ElementQualifier>();
 
+            TokenQueue tq = new TokenQueue(selector);
             while (!tq.isEmpty()) {
                 tq.consumeWhitespace();
                 if (tq.isEmpty() || !tq.matchesAny('>')) {
@@ -147,46 +226,8 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
                 throw new SaxHtmlMatcherException("expected selector");
             }
 
-            this.qualifiers = pathSelector.toArray(ElementQualifier.EmptyQualifierArray);
+            return pathSelector.toArray(ElementQualifier.EmptyQualifierArray);
         }
-
-        /**
-         * User of this class may check isMatching() after each onStartTag()
-         *
-         * @return whether the last StartTag / EndTag belong to matched part
-         * <p>
-         * When used to build Elements, user should detect transition
-         * of isMatching() and start/finish build of Element.
-         */
-        public boolean isMatching() {
-            return matchedDepth >= qualifiers.length - 1;
-        }
-
-        @Override
-        public void onStartTag(Token.StartTag token) {
-            int tagDepth = tagStack.size();
-            tagStack.add(token);
-
-            if (tagDepth < qualifiers.length) {
-                ElementQualifier qualifier = qualifiers[tagDepth];
-                if (qualifier.match(token)) {
-                    matchedDepth = tagDepth;
-                }
-            }
-        }
-
-        @Override
-        public void onEndTag(Token.EndTag token) {
-            tagStack.remove(tagStack.size() - 1);
-            int tagDepth = tagStack.size() - 1;
-
-            if (tagDepth < matchedDepth) {
-                matchedDepth = tagDepth;
-            }
-
-        }
-
-
     }
 
 

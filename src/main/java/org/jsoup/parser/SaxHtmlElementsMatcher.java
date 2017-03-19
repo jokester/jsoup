@@ -2,6 +2,7 @@ package org.jsoup.parser;
 
 import org.jsoup.helper.Validate;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,38 +61,92 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
         }
     }
 
-    static class PartialTreeMatcher extends SaxEventListener.NopSaxEventListener {
+    public static class PartialTreeMatcher extends SaxEventListener.NopSaxEventListener {
+
+        // the current partial tree being built
+        private final ArrayList<Element> currentTree = new ArrayList<Element>(16);
+        // all matched partial tree. a tree is appended after it is completely built.
+        private final Elements matchedTrees = new Elements();
+        private final ParseErrorList errors;
 
         private final ElementPath path;
+        private final String baseUri;
 
-        private final ArrayList<Element> nodeStack = new ArrayList<Element>(16);
-
-        PartialTreeMatcher(String selector) {
-            path = ElementPath.create(selector);
+        public PartialTreeMatcher(String selector, ParseErrorList errors, String baseUri) {
+            // share ParseErrorList to ElementPath
+            path = ElementPath.create(selector, this.errors = errors);
+            this.baseUri = baseUri;
         }
 
+        public Elements getMatched() {
+            return matchedTrees;
+        }
+
+        /**
+         * Do nothing. Subclass may override this to immediately obtain the tree
+         *
+         * @param tree the new tree built. When a premature Token.EOF is fed, the tree may be incomplete.
+         */
+        public void onTreeBuilt(Element tree) {
+        }
+
+        /**
+         * return all
+         *
+         * @param token
+         */
         public void onStartTag(Token.StartTag token) {
             boolean matchingBefore = path.isMatching();
             path.onStartTag(token);
             boolean matchingAfter = path.isMatching();
 
-            Element newElem = new Element(Tag.valueOf(token.tagName, ParseSettings.htmlDefault),
-                    dummyURL, token.getAttributes());
+            if (!matchingBefore && !matchingAfter)
+                return;
 
-            if (nodeStack.size() != 0) {
-                Element parent = nodeStack.get(nodeStack.size() - 1);
-                // TODO learn
+            Element newElem = new Element(Tag.valueOf(token.tagName, ParseSettings.htmlDefault),
+                    baseUri, token.getAttributes());
+
+            Element maybeParent = currentNode();
+            if (maybeParent != null) {
+                maybeParent.appendChild(newElem);
             }
 
-            nodeStack.add(newElem);
+            currentTree.add(newElem);
         }
 
         public void onEndTag(Token.EndTag token) {
             boolean matchingBefore = path.isMatching();
+            final boolean popped = path.onEndTag(token);
             boolean matchingAfter = path.isMatching();
-            if (matchingBefore && !matchingAfter) {
-                // pop nodeStack
+
+            if (popped) {
+                final int nodeDepth = currentTree.size();
+                if (nodeDepth > 1)
+                    currentTree.remove(nodeDepth - 1);
+
+                if (matchingBefore && !matchingAfter) {
+                    Element root = currentNode();
+                    matchedTrees.add(root);
+                    currentTree.clear();
+                }
             }
+        }
+
+        @Override
+        public void onEOF(Token.EOF token) {
+            if (matchedTrees.size() > 0) {
+                Element incomplete = matchedTrees.get(0);
+                onTreeBuilt(incomplete);
+                matchedTrees.add(incomplete);
+                currentTree.clear();
+            }
+        }
+
+        Element currentNode() {
+            if (currentTree.size() == 0)
+                return null;
+            else
+                return currentTree.get(currentTree.size() - 1);
         }
     }
 
@@ -147,6 +202,10 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
             }
         }
 
+        /**
+         * @param token the end tag
+         * @return whether it is correctly popped.
+         */
         public boolean onEndTag(Token.EndTag token) {
             final int tagDepth = tagStack.size();
             if (tagDepth == 0) {

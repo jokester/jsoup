@@ -1,6 +1,8 @@
 package org.jsoup.parser;
 
 import org.jsoup.nodes.Attributes;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -122,5 +124,46 @@ public class SaxDriverTest {
         path.onEndTag((Token.EndTag) new Token.EndTag().name("b"));
         assertEquals(0, path.matchedDepth);
         assertEquals(2, errors.size());
+    }
+
+    @Test
+    public void matchesPartialTree() {
+
+        String html1 = new StringBuilder()
+                .append("<a>                ")
+                .append("  <b>              ")
+                .append("    <c>C1          ")
+                .append("      <d>D1-1</d>  ")
+                .append("    </c>           ")
+                .append("  </b>             ")
+                .append("  <b>              ")
+                .append("    <c>C2          ")
+                .append("      <d>D2-1</d>  ")
+                .append("    </c>           ")
+                .append("    <c>C3          ")
+                .append("      <d>D3-1</d>  ")
+                .append("      <d>D3-2</d>  ")
+                .append("    </c>           ")
+                .append("    <c>C4          ")
+                .append("      <d>D4-1      ")
+                .toString();
+
+        ParseErrorList errors = ParseErrorList.tracking(100);
+        SaxHtmlElementsMatcher.PartialTreeMatcher matcher = new SaxHtmlElementsMatcher.PartialTreeMatcher("> a > b > c", errors, "");
+
+        SaxDriver driver = new SaxDriver(html1);
+        driver.addListener(matcher);
+        driver.start();
+
+        Elements partialTrees = matcher.getMatched();
+        assertEquals(4, partialTrees.size());
+
+        Element c1 = partialTrees.get(0);
+        assertEquals(1, c1.getElementsByTag("d").size());
+
+        Element c3 = partialTrees.get(2);
+        assertEquals(2, c3.getElementsByTag("d").size());
+
+        assertEquals("", partialTrees.toString());
     }
 }

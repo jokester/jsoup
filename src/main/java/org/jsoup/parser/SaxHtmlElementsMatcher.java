@@ -104,7 +104,7 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
      * 2. a PathSegment is of form 'tag.class#id' where at least one
      * of tag, classes, id is supplied
      */
-    static class ElementPath extends SaxEventListener.NopSaxEventListener {
+    static class ElementPath {
         private final ElementQualifier[] qualifiers;
         private final ArrayList<String> tagStack = new ArrayList<String>(16);
         private final ParseErrorList errors;
@@ -134,7 +134,6 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
             return matchedDepth >= qualifiers.length;
         }
 
-        @Override
         public void onStartTag(Token.StartTag token) {
             final int tagDepth = tagStack.size();
             tagStack.add(token.name());
@@ -148,23 +147,23 @@ public class SaxHtmlElementsMatcher extends SaxEventListener.NopSaxEventListener
             }
         }
 
-        @Override
-        public void onEndTag(Token.EndTag token) {
+        public boolean onEndTag(Token.EndTag token) {
             final int tagDepth = tagStack.size();
             if (tagDepth == 0) {
                 unexpectedTag(token, "tagStack is already empty");
-                return;
+                return false;
             }
 
             final String rightMost = tagStack.get(tagDepth - 1);
             if (!rightMost.equals(token.name())) {
                 unexpectedTag(token, "last StartTag was " + rightMost);
-                return;
+                return false;
             }
 
             // pop from tagStack and decrease matchedDepth
             tagStack.remove(tagDepth - 1);
             matchedDepth = Math.min(matchedDepth, tagDepth - 1);
+            return true;
         }
 
         // this is the only possible error

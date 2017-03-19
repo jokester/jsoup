@@ -1,5 +1,7 @@
 package org.jsoup.parser;
 
+import org.jsoup.helper.StringUtil;
+
 import java.util.ArrayList;
 
 /**
@@ -15,6 +17,27 @@ import java.util.ArrayList;
 public final class SaxDriver {
 
     private final ArrayList<SaxEventListener> listeners = new ArrayList<SaxEventListener>();
+
+    /**
+     * Void elements that *may* have self-closing tag
+     */
+    public static final String[] VoidElements = new String[]{
+            "area",
+            "base",
+            "br",
+            "col",
+            "embed",
+            "hr",
+            "img",
+            "input",
+            "keygen",
+            "link",
+            "meta",
+            "param,",
+            "source",
+            "track",
+            "wbr",
+    };
 
     private CharacterReader characterReader;
 
@@ -35,9 +58,14 @@ public final class SaxDriver {
             if (t instanceof Token.Character) {
                 feedListeners((Token.Character) t);
             } else if (t instanceof Token.StartTag) {
-                feedListeners((Token.StartTag) t);
+                feedListeners(t.asStartTag());
+                // "unfolds" when t is a self-closing tag
+                // or feed a fake closing tag if t is a void element
+                if (t.asStartTag().isSelfClosing() || StringUtil.inSorted(t.asStartTag().normalName(), VoidElements))
+                    feedListeners(new Token.EndTag().name(t.asStartTag().name()).asEndTag());
             } else if (t instanceof Token.EndTag) {
-                feedListeners((Token.EndTag) t);
+                if (!StringUtil.inSorted(((Token.EndTag) t).normalName(), VoidElements))
+                  feedListeners((Token.EndTag) t);
             } else if (t instanceof Token.Doctype) {
                 feedListeners((Token.Doctype) t);
             } else if (t instanceof Token.Comment) {
